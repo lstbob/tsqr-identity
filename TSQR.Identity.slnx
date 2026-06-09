@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TSQR.Identity.Api/TSQR.Identity.Api.csproj" />
+    <Project Path="src/TSQR.Identity.Application/TSQR.Identity.Application.csproj" />
+    <Project Path="src/TSQR.Identity.Domain/TSQR.Identity.Domain.csproj" />
+    <Project Path="src/TSQR.Identity.Infrastructure/TSQR.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TSQR.Identity.Tests/TSQR.Identity.Tests.csproj" />
+  </Folder>
+</Solution>
