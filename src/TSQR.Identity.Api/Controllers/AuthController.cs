@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TSQR.Identity.Application.Commands.Auth;
+using TSQR.Identity.Application.Queries.Users;
 
 namespace TSQR.Identity.Api.Controllers;
 
@@ -13,19 +14,22 @@ public sealed class AuthController : ControllerBase
     private readonly IInteractor<RefreshTokenCommand, Result<LoginResult>> _refreshToken;
     private readonly IInteractor<LogoutCommand, Result> _logout;
     private readonly IInteractor<ChangePasswordCommand, Result> _changePassword;
+    private readonly IInteractor<GetCurrentUserQuery, Result<CurrentUserResult>> _getCurrentUser;
 
     public AuthController(
         IInteractor<RegisterCommand, Result> register,
         IInteractor<LoginCommand, Result<LoginResult>> login,
         IInteractor<RefreshTokenCommand, Result<LoginResult>> refreshToken,
         IInteractor<LogoutCommand, Result> logout,
-        IInteractor<ChangePasswordCommand, Result> changePassword)
+        IInteractor<ChangePasswordCommand, Result> changePassword,
+        IInteractor<GetCurrentUserQuery, Result<CurrentUserResult>> getCurrentUser)
     {
         _register = register;
         _login = login;
         _refreshToken = refreshToken;
         _logout = logout;
         _changePassword = changePassword;
+        _getCurrentUser = getCurrentUser;
     }
 
     [HttpPost("register")]
@@ -98,6 +102,26 @@ public sealed class AuthController : ControllerBase
         var result = await _changePassword.ExecuteAsync(command, ct);
         if (result.IsSuccess)
             return Ok();
+
+        return ToErrorResult(result.Error);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken ct)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await _getCurrentUser.ExecuteAsync(new GetCurrentUserQuery(userId), ct);
+        if (result.IsSuccess)
+        {
+            var u = result.Value;
+            return Ok(new CurrentUserResponse(u.Id, u.Email, u.FirstName, u.LastName, u.UserName, u.Roles, u.IsLockedOut, u.CreatedAt));
+        }
 
         return ToErrorResult(result.Error);
     }

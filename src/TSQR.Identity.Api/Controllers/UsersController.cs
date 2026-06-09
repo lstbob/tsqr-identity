@@ -14,17 +14,20 @@ public sealed class UsersController : ControllerBase
     private readonly IInteractor<GetUserQuery, Result<UserListItem>> _getUser;
     private readonly IInteractor<UpdateUserCommand, Result> _updateUser;
     private readonly IInteractor<DeleteUserCommand, Result> _deleteUser;
+    private readonly IInteractor<LockUserCommand, Result> _lockUser;
 
     public UsersController(
         IInteractor<GetUsersQuery, Result<List<UserListItem>>> getUsers,
         IInteractor<GetUserQuery, Result<UserListItem>> getUser,
         IInteractor<UpdateUserCommand, Result> updateUser,
-        IInteractor<DeleteUserCommand, Result> deleteUser)
+        IInteractor<DeleteUserCommand, Result> deleteUser,
+        IInteractor<LockUserCommand, Result> lockUser)
     {
         _getUsers = getUsers;
         _getUser = getUser;
         _updateUser = updateUser;
         _deleteUser = deleteUser;
+        _lockUser = lockUser;
     }
 
     [HttpGet]
@@ -79,6 +82,37 @@ public sealed class UsersController : ControllerBase
     {
         var command = new DeleteUserCommand(id);
         var result = await _deleteUser.ExecuteAsync(command, ct);
+        if (result.IsSuccess)
+            return Ok();
+
+        return ToErrorResult(result.Error);
+    }
+
+    [HttpPost("{id}/lock")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> Lock(string id, LockUserRequest request, CancellationToken ct)
+    {
+        var command = new LockUserCommand(id, request.LockoutEnd);
+        var result = await _lockUser.ExecuteAsync(command, ct);
+        if (result.IsSuccess)
+            return Ok();
+
+        return ToErrorResult(result.Error);
+    }
+
+    [HttpPost("{id}/unlock")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> Unlock(string id, CancellationToken ct)
+    {
+        var command = new LockUserCommand(id, null);
+        var result = await _lockUser.ExecuteAsync(command, ct);
         if (result.IsSuccess)
             return Ok();
 

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace TSQR.Identity.Infrastructure.IdentityStores;
 
-public sealed class RoleStore : IRoleStore<Domain.Entities.Role>
+public sealed class RoleStore : IQueryableRoleStore<Domain.Entities.Role>
 {
     private readonly IDatabaseConnection _db;
 
@@ -56,6 +56,16 @@ public sealed class RoleStore : IRoleStore<Domain.Entities.Role>
     public Task<string?> GetNormalizedRoleNameAsync(Domain.Entities.Role role, CancellationToken ct) => Task.FromResult(role.NormalizedName);
     public Task SetRoleNameAsync(Domain.Entities.Role role, string? roleName, CancellationToken ct) { role.Name = roleName; return Task.CompletedTask; }
     public Task SetNormalizedRoleNameAsync(Domain.Entities.Role role, string? normalizedName, CancellationToken ct) { role.NormalizedName = normalizedName; return Task.CompletedTask; }
+
+    public IQueryable<Domain.Entities.Role> Roles
+    {
+        get
+        {
+            var conn = _db.GetConnectionAsync(default).GetAwaiter().GetResult();
+            var roles = conn.Query<Domain.Entities.Role>("SELECT * FROM AspNetRoles");
+            return roles.AsQueryable();
+        }
+    }
 
     public void Dispose()
     {
