@@ -19,10 +19,11 @@ public class GetProfileQueryHandler(IProfileRepository profiles, IRoleRepository
     public async Task<Result<ProfileResult>> ExecuteAsync(GetProfileQuery command, CancellationToken ct = default)
     {
         var profile = await profiles.GetByIdAsync(command.UserId, ct);
-        if (profile is null)
-            return new NotFoundError(nameof(command.UserId), "User profile not found.");
-
         var userRoles = await roles.GetUserRolesAsync(command.UserId, ct);
+
+        if (profile is null)
+            return new ProfileResult(
+                command.UserId, null, null, null, null, userRoles, DateTime.UtcNow);
 
         return new ProfileResult(
             profile.Id, profile.FirstName, profile.LastName,
