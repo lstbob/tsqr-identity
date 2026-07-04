@@ -1,25 +1,25 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace TSQR.Identity.Application.Commands.Auth;
+namespace TSQR.Identity.Application.Commands.Profile;
 
-public record ChangePasswordCommand(string UserId, string CurrentPassword, string NewPassword);
+public record ChangeEmailCommand(string UserId, string NewEmail, string Token);
 
-public class ChangePasswordCommandHandler : IInteractor<ChangePasswordCommand, Result>
+public class ChangeEmailCommandHandler : IInteractor<ChangeEmailCommand, Result>
 {
     private readonly UserManager<AppUser> _userManager;
 
-    public ChangePasswordCommandHandler(UserManager<AppUser> userManager)
+    public ChangeEmailCommandHandler(UserManager<AppUser> userManager)
     {
         _userManager = userManager;
     }
 
-    public async Task<Result> ExecuteAsync(ChangePasswordCommand command, CancellationToken ct = default)
+    public async Task<Result> ExecuteAsync(ChangeEmailCommand command, CancellationToken ct = default)
     {
         var user = await _userManager.FindByIdAsync(command.UserId);
         if (user is null)
             return new NotFoundError(nameof(command.UserId), "User not found.");
 
-        var result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
+        var result = await _userManager.ChangeEmailAsync(user, command.NewEmail, command.Token);
         if (!result.Succeeded)
         {
             var firstError = result.Errors.First();

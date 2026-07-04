@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using TSQR.Identity.Application.Interfaces;
 using TSQR.Identity.Infrastructure.IdentityStores;
-using TSQR.Identity.Infrastructure.Repositories;
-using TSQR.Identity.Infrastructure.Services;
 
 namespace TSQR.Identity.Infrastructure;
 
@@ -14,9 +10,6 @@ public static class DependencyInjection
         string connectionString)
     {
         services.AddScoped<IDatabaseConnection>(_ => new IdentityDbConnection(connectionString));
-
-        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IJwtService, JwtService>();
 
         services.AddScoped<IUserStore<AppUser>, UserStore>();
         services.AddScoped<IRoleStore<Role>, RoleStore>();

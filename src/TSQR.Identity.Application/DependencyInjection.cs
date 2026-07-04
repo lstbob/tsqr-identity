@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using TSQR.Identity.Application.Commands.Auth;
+using TSQR.Identity.Application.Commands.Profile;
 using TSQR.Identity.Application.Commands.Roles;
 using TSQR.Identity.Application.Commands.Users;
+using TSQR.Identity.Application.Queries.Profile;
 using TSQR.Identity.Application.Queries.Roles;
 using TSQR.Identity.Application.Queries.Users;
 
@@ -9,14 +10,12 @@ namespace TSQR.Identity.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAuthFeatures(this IServiceCollection services)
+    public static IServiceCollection AddProfileFeatures(this IServiceCollection services)
     {
-        services.AddScoped<IInteractor<RegisterCommand, Result>, RegisterCommandHandler>();
-        services.AddScoped<IInteractor<LoginCommand, Result<LoginResult>>, LoginCommandHandler>();
-        services.AddScoped<IInteractor<RefreshTokenCommand, Result<LoginResult>>, RefreshTokenCommandHandler>();
-        services.AddScoped<IInteractor<LogoutCommand, Result>, LogoutCommandHandler>();
-        services.AddScoped<IInteractor<ChangePasswordCommand, Result>, ChangePasswordCommandHandler>();
-        services.AddScoped<IInteractor<GetCurrentUserQuery, Result<CurrentUserResult>>, GetCurrentUserQueryHandler>();
+        services.AddScoped<IInteractor<GetProfileQuery, Result<ProfileResult>>, GetProfileQueryHandler>();
+        services.AddScoped<IInteractor<UpdateProfileCommand, Result>, UpdateProfileCommandHandler>();
+        services.AddScoped<IInteractor<RequestEmailChangeCommand, Result<string>>, RequestEmailChangeCommandHandler>();
+        services.AddScoped<IInteractor<ChangeEmailCommand, Result>, ChangeEmailCommandHandler>();
         return services;
     }
 
@@ -41,7 +40,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApplicationFeatures(this IServiceCollection services)
     {
-        services.AddAuthFeatures();
+        services.AddProfileFeatures();
         services.AddUserFeatures();
         services.AddRoleFeatures();
         return services;

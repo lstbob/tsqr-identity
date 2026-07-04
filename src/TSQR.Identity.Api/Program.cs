@@ -7,7 +7,6 @@ using TSQR.Identity.Application;
 using TSQR.Identity.Infrastructure;
 using TSQR.Identity.Infrastructure.Data;
 using TSQR.Identity.Infrastructure.Seed;
-using TSQR.Identity.Infrastructure.Services;
 
 TypeHandlerRegistrations.EnsureRegistered();
 
@@ -20,11 +19,9 @@ builder.Services.AddControllers()
         {
             var firstError = ctx.ModelState
                 .FirstOrDefault(kvp => kvp.Value?.Errors.Count > 0);
-
             var error = firstError.Value?.Errors.FirstOrDefault();
             var code = firstError.Key;
             var message = error?.ErrorMessage ?? "Validation failed.";
-
             return new BadRequestObjectResult(new ErrorResponse(code, message));
         };
     });
@@ -32,38 +29,34 @@ builder.Services.AddControllers()
 var connectionString = builder.Configuration.GetConnectionString("IdentityDb")
     ?? throw new InvalidOperationException("Connection string 'IdentityDb' not found.");
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT Key not configured.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "tsqr-autheo";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "tsqr-services";
+
 builder.Services.AddIdentityInfrastructure(connectionString);
 builder.Services.AddApplicationFeatures();
 
-var jwtSection = builder.Configuration.GetSection(JwtOptions.Section);
-builder.Services.Configure<JwtOptions>(jwtSection);
-var jwtOptions = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JWT configuration not found.");
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtOptions.Issuer,
-        ValidAudience = jwtOptions.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
