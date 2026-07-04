@@ -11,6 +11,7 @@ public static class DependencyInjection
         string connectionString)
     {
         services.AddScoped<ISqlUnitOfWork>(_ => new DapperUnitOfWork(connectionString));
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ISqlUnitOfWork>());
 
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IUserAdminRepository, UserAdminRepository>();
