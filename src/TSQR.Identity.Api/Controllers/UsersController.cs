@@ -35,7 +35,7 @@ public sealed class UsersController : ControllerBase
     {
         var result = await _getUsers.ExecuteAsync(new GetUsersQuery(), ct);
         if (result.IsSuccess)
-            return Ok(result.Value.Select(u => new UserResponse(u.Id, u.Email, u.FirstName, u.LastName, u.UserName, u.CreatedAt)).ToList());
+            return Ok(result.Value.Select(u => new UserResponse(u.Id, u.FirstName, u.LastName, u.CreatedAt)).ToList());
 
         return ToErrorResult(result.Error);
     }
@@ -45,7 +45,7 @@ public sealed class UsersController : ControllerBase
     {
         var result = await _getUser.ExecuteAsync(new GetUserQuery(id), ct);
         if (result.IsSuccess)
-            return Ok(new UserResponse(result.Value.Id, result.Value.Email, result.Value.FirstName, result.Value.LastName, result.Value.UserName, result.Value.CreatedAt));
+            return Ok(new UserResponse(result.Value.Id, result.Value.FirstName, result.Value.LastName, result.Value.CreatedAt));
 
         return ToErrorResult(result.Error);
     }
@@ -53,7 +53,7 @@ public sealed class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(string id, UpdateUserRequest request, CancellationToken ct)
     {
-        var command = new UpdateUserCommand(id, request.FirstName, request.LastName, request.Email);
+        var command = new UpdateUserCommand(id, request.FirstName, request.LastName);
         var result = await _updateUser.ExecuteAsync(command, ct);
         if (result.IsSuccess)
             return Ok();

@@ -1,16 +1,8 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace TSQR.Identity.Domain.Entities;
 
-public class Role : IdentityRole<string>
+public sealed class Role
 {
-    public Role()
-    {
-        Id = Guid.NewGuid().ToString();
-    }
-
-    public Role(string name) : this()
-    {
-        Name = name;
-    }
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NormalizedName { get; set; } = string.Empty;
 }

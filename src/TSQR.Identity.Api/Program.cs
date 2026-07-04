@@ -5,10 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using TSQR.Identity.Api.Dtos;
 using TSQR.Identity.Application;
 using TSQR.Identity.Infrastructure;
-using TSQR.Identity.Infrastructure.Data;
-using TSQR.Identity.Infrastructure.Seed;
-
-TypeHandlerRegistrations.EnsureRegistered();
+using TSQR.Identity.Infrastructure.Dapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +57,5 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-await IdentitySeeder.SeedAsync(app.Services);
 
 app.Run();

@@ -1,32 +1,27 @@
-using Microsoft.AspNetCore.Identity;
+using TSQR.Identity.Domain.Repositories;
 
 namespace TSQR.Identity.Application.Commands.Roles;
 
 public record CreateRoleCommand(string RoleName);
 
-public class CreateRoleCommandHandler : IInteractor<CreateRoleCommand, Result>
+public class CreateRoleCommandHandler(IRoleRepository roles, IUnitOfWork uow)
+    : IInteractor<CreateRoleCommand, Result>
 {
-    private readonly RoleManager<Role> _roleManager;
-
-    public CreateRoleCommandHandler(RoleManager<Role> roleManager)
-    {
-        _roleManager = roleManager;
-    }
-
     public async Task<Result> ExecuteAsync(CreateRoleCommand command, CancellationToken ct = default)
     {
-        var exists = await _roleManager.RoleExistsAsync(command.RoleName);
-        if (exists)
+        var exists = await roles.GetByNameAsync(command.RoleName, ct);
+        if (exists is not null)
             return new ValidationError(nameof(command.RoleName), "Role already exists.");
 
-        var role = new Role(command.RoleName);
-        var result = await _roleManager.CreateAsync(role);
-        if (!result.Succeeded)
+        var role = new Role
         {
-            var firstError = result.Errors.First();
-            return new ValidationError(firstError.Code, firstError.Description);
-        }
+            Id = Guid.NewGuid().ToString(),
+            Name = command.RoleName,
+            NormalizedName = command.RoleName.ToUpperInvariant(),
+        };
 
+        await roles.CreateAsync(role, ct);
+        await uow.SaveChangesAsync(ct);
         return Result.Success();
     }
 }

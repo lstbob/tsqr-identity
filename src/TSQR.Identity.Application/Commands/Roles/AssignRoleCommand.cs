@@ -1,31 +1,20 @@
-using Microsoft.AspNetCore.Identity;
+using TSQR.Identity.Domain.Repositories;
 
 namespace TSQR.Identity.Application.Commands.Roles;
 
 public record AssignRoleCommand(string UserId, string RoleName);
 
-public class AssignRoleCommandHandler : IInteractor<AssignRoleCommand, Result>
+public class AssignRoleCommandHandler(IRoleRepository roles, IUnitOfWork uow)
+    : IInteractor<AssignRoleCommand, Result>
 {
-    private readonly UserManager<AppUser> _userManager;
-
-    public AssignRoleCommandHandler(UserManager<AppUser> userManager)
-    {
-        _userManager = userManager;
-    }
-
     public async Task<Result> ExecuteAsync(AssignRoleCommand command, CancellationToken ct = default)
     {
-        var user = await _userManager.FindByIdAsync(command.UserId);
-        if (user is null)
-            return new NotFoundError(nameof(command.UserId), "User not found.");
+        var role = await roles.GetByNameAsync(command.RoleName, ct);
+        if (role is null)
+            return new NotFoundError(nameof(command.RoleName), "Role not found.");
 
-        var result = await _userManager.AddToRoleAsync(user, command.RoleName);
-        if (!result.Succeeded)
-        {
-            var firstError = result.Errors.First();
-            return new ValidationError(firstError.Code, firstError.Description);
-        }
-
+        await roles.AssignRoleAsync(command.UserId, role.Id, ct);
+        await uow.SaveChangesAsync(ct);
         return Result.Success();
     }
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+using TSQR.Identity.Domain.Repositories;
 
 namespace TSQR.Identity.Application.Queries.Profile;
 
@@ -6,44 +6,26 @@ public record GetProfileQuery(string UserId);
 
 public record ProfileResult(
     string Id,
-    string? Email,
     string? FirstName,
     string? LastName,
     string? AvatarUrl,
     string? Bio,
-    string? UserName,
-    IList<string> Roles,
-    bool IsLockedOut,
+    List<string> Roles,
     DateTime CreatedAt);
 
-public class GetProfileQueryHandler : IInteractor<GetProfileQuery, Result<ProfileResult>>
+public class GetProfileQueryHandler(IProfileRepository profiles, IRoleRepository roles)
+    : IInteractor<GetProfileQuery, Result<ProfileResult>>
 {
-    private readonly UserManager<AppUser> _userManager;
-
-    public GetProfileQueryHandler(UserManager<AppUser> userManager)
-    {
-        _userManager = userManager;
-    }
-
     public async Task<Result<ProfileResult>> ExecuteAsync(GetProfileQuery command, CancellationToken ct = default)
     {
-        var user = await _userManager.FindByIdAsync(command.UserId);
-        if (user is null)
-            return new NotFoundError(nameof(command.UserId), "User not found.");
+        var profile = await profiles.GetByIdAsync(command.UserId, ct);
+        if (profile is null)
+            return new NotFoundError(nameof(command.UserId), "User profile not found.");
 
-        var roles = await _userManager.GetRolesAsync(user);
-        var isLocked = await _userManager.IsLockedOutAsync(user);
+        var userRoles = await roles.GetUserRolesAsync(command.UserId, ct);
 
         return new ProfileResult(
-            user.Id,
-            user.Email,
-            user.FirstName,
-            user.LastName,
-            user.AvatarUrl,
-            user.Bio,
-            user.UserName,
-            roles,
-            isLocked,
-            user.CreatedAt);
+            profile.Id, profile.FirstName, profile.LastName,
+            profile.AvatarUrl, profile.Bio, userRoles, profile.CreatedAt);
     }
 }

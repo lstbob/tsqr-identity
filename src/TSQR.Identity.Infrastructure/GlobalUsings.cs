@@ -5,4 +5,4 @@ global using TSQR.Common.Results;
 global using TSQR.Identity.Domain;
 global using TSQR.Identity.Domain.Entities;
 global using Microsoft.Extensions.DependencyInjection;
-global using TSQR.Identity.Infrastructure.Data;
+global using TSQR.Identity.Infrastructure.Dapper;

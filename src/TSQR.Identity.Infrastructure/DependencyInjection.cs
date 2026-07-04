@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Identity;
-using TSQR.Identity.Infrastructure.IdentityStores;
+using TSQR.Identity.Domain.Repositories;
+using TSQR.Identity.Infrastructure.Dapper;
+using TSQR.Identity.Infrastructure.Repositories;
 
 namespace TSQR.Identity.Infrastructure;
 
@@ -9,23 +10,11 @@ public static class DependencyInjection
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddScoped<IDatabaseConnection>(_ => new IdentityDbConnection(connectionString));
+        services.AddScoped<ISqlUnitOfWork>(_ => new DapperUnitOfWork(connectionString));
 
-        services.AddScoped<IUserStore<AppUser>, UserStore>();
-        services.AddScoped<IRoleStore<Role>, RoleStore>();
-
-        services.AddIdentityCore<AppUser>(options =>
-        {
-            options.Password.RequiredLength = 8;
-            options.Password.RequireNonAlphanumeric = true;
-            options.Password.RequireDigit = true;
-            options.Password.RequireUppercase = true;
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-        })
-        .AddRoles<Role>()
-        .AddSignInManager()
-        .AddDefaultTokenProviders();
+        services.AddScoped<IProfileRepository, ProfileRepository>();
+        services.AddScoped<IUserAdminRepository, UserAdminRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
 
         return services;
     }
