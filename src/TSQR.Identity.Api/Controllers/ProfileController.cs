@@ -84,7 +84,7 @@ public sealed class ProfileController : ControllerBase
 
     [HttpPost("avatar")]
     [RequestSizeLimit(5_242_880)] // 5 MB
-    public async Task<ActionResult> UploadAvatar(IFormFile file, CancellationToken ct)
+    public async Task<ActionResult> UploadAvatar(IFormFile file, [FromServices] IProfileRepository profiles, [FromServices] IUnitOfWork uow, CancellationToken ct)
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return Unauthorized();
@@ -106,6 +106,27 @@ public sealed class ProfileController : ControllerBase
         {
             await file.CopyToAsync(stream, ct);
         }
+
+        var profile = await profiles.GetByIdAsync(userId, ct);
+        if (profile is null)
+        {
+            profile = new UserProfile
+            {
+                Id = userId,
+                AvatarUrl = fileName,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            await profiles.CreateAsync(profile, ct);
+        }
+        else
+        {
+            profile.AvatarUrl = fileName;
+            profile.UpdatedAt = DateTime.UtcNow;
+            await profiles.UpdateAsync(profile, ct);
+        }
+
+        await uow.SaveChangesAsync(ct);
 
         return Ok(new { avatarUrl = $"/api/profile/avatar/{userId}" });
     }
