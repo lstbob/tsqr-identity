@@ -1,9 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY --from=common . ./tsqr-common
-RUN rm ./tsqr-common/nuget.config && \
-    dotnet pack ./tsqr-common/src/TSQR.Common/TSQR.Common.csproj -c Release -o /tmp/nupkg
+COPY --from=common . /tsqr-common
+RUN rm /tsqr-common/nuget.config && \
+    dotnet pack /tsqr-common/src/TSQR.Common/TSQR.Common.csproj -c Release -o /tmp/nupkg
 
 COPY nuget.config .
 RUN dotnet nuget add source /tmp/nupkg --name local-common
