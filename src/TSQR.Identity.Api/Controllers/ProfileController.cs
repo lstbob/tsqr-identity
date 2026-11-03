@@ -12,13 +12,13 @@ public sealed class ProfileController : ControllerBase
 {
     private readonly IInteractor<GetProfileQuery, Result<ProfileResult>> _getProfile;
     private readonly IInteractor<UpdateProfileCommand, Result> _updateProfile;
-    private readonly IInteractor<RequestEmailChangeCommand, Result<string>> _requestEmailChange;
+    private readonly IInteractor<RequestEmailChangeCommand, Result> _requestEmailChange;
     private readonly IInteractor<ChangeEmailCommand, Result> _changeEmail;
 
     public ProfileController(
         IInteractor<GetProfileQuery, Result<ProfileResult>> getProfile,
         IInteractor<UpdateProfileCommand, Result> updateProfile,
-        IInteractor<RequestEmailChangeCommand, Result<string>> requestEmailChange,
+        IInteractor<RequestEmailChangeCommand, Result> requestEmailChange,
         IInteractor<ChangeEmailCommand, Result> changeEmail)
     {
         _getProfile = getProfile;
@@ -65,7 +65,7 @@ public sealed class ProfileController : ControllerBase
         if (!result.IsSuccess)
             return ToErrorResult(result.Error);
 
-        return Ok(new { token = result.Value });
+        return Ok();
     }
 
     [HttpPost("email/confirm")]
@@ -74,8 +74,11 @@ public sealed class ProfileController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return Unauthorized();
 
+        var accessToken = GetAccessToken();
+        if (accessToken is null) return Unauthorized();
+
         var result = await _changeEmail.ExecuteAsync(
-            new ChangeEmailCommand(userId, request.NewEmail, request.Token), ct);
+            new ChangeEmailCommand(userId, request.NewEmail, request.Token, accessToken), ct);
         if (!result.IsSuccess)
             return ToErrorResult(result.Error);
 
@@ -153,6 +156,17 @@ public sealed class ProfileController : ControllerBase
 
         var bytes = await System.IO.File.ReadAllBytesAsync(filePath);
         return File(bytes, contentType);
+    }
+
+    private string? GetAccessToken()
+    {
+        const string prefix = "Bearer ";
+        var header = Request.Headers["Authorization"].ToString();
+        if (!header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var token = header[prefix.Length..].Trim();
+        return token.Length == 0 ? null : token;
     }
 
     private ActionResult ToErrorResult(Error error)

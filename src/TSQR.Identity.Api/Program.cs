@@ -6,6 +6,7 @@ using TSQR.Identity.Api.Dtos;
 using TSQR.Identity.Application;
 using TSQR.Identity.Infrastructure;
 using TSQR.Identity.Infrastructure.Dapper;
+using TSQR.Identity.Infrastructure.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +32,12 @@ var jwtKey = builder.Configuration["Jwt:Key"]
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "tsqr-autheo";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "tsqr-services";
 
-builder.Services.AddIdentityInfrastructure(connectionString);
+var autheoOptions = builder.Configuration.GetSection("Autheo").Get<AutheoOptions>()
+    ?? new AutheoOptions();
+var emailOptions = builder.Configuration.GetSection("Email").Get<EmailOptions>()
+    ?? new EmailOptions();
+
+builder.Services.AddIdentityInfrastructure(connectionString, autheoOptions, emailOptions);
 builder.Services.AddApplicationFeatures();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

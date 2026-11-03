@@ -13,7 +13,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IInteractor<GetProfileQuery, Result<ProfileResult>>, GetProfileQueryHandler>();
         services.AddScoped<IInteractor<UpdateProfileCommand, Result>, UpdateProfileCommandHandler>();
-        services.AddScoped<IInteractor<RequestEmailChangeCommand, Result<string>>, RequestEmailChangeCommandHandler>();
+        services.AddScoped<IInteractor<RequestEmailChangeCommand, Result>, RequestEmailChangeCommandHandler>();
         services.AddScoped<IInteractor<ChangeEmailCommand, Result>, ChangeEmailCommandHandler>();
 
         services.AddScoped<IInteractor<UpdateUserCommand, Result>, UpdateUserCommandHandler>();

@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TSQR.Identity.Domain\TSQR.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\TSQR.Identity.Application\TSQR.Identity.Application.csproj" />
+  </ItemGroup>
+
 </Project>
