@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TSQR.Identity.Domain\TSQR.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\src\TSQR.Identity.Application\TSQR.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\TSQR.Identity.Infrastructure\TSQR.Identity.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

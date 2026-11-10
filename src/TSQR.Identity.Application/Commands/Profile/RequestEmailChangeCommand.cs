@@ -32,15 +32,16 @@ public class RequestEmailChangeCommandHandler(
 
         // The profile row owns the foreign key used by pending_email_changes.
         // A user may reach this endpoint before ever saving profile details.
-        if (!await profiles.ExistsAsync(command.UserId, ct))
-        {
-            await profiles.CreateAsync(new UserProfile
-            {
-                Id = command.UserId,
-                CreatedAt = now,
-                UpdatedAt = now,
-            }, ct);
-        }
+        // CreateAsync is ON CONFLICT DO NOTHING, so no read-before-write race.
+        var profileResult = UserProfile.Create(
+            command.UserId,
+            createdAt: now,
+            updatedAt: now);
+
+        if (profileResult.IsFailure)
+            return profileResult.Error;
+
+        await profiles.CreateAsync(profileResult.Value, ct);
 
         await pendingChanges.DeleteUnconfirmedForUserAsync(command.UserId, ct);
         await pendingChanges.AddAsync(pending, ct);

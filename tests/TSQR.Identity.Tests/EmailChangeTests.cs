@@ -301,6 +301,13 @@ public class EmailChangeTests
             return Task.CompletedTask;
         }
 
+        public Task UpsertAsync(UserProfile profile, CancellationToken ct = default)
+        {
+            Created = profile;
+            Exists = true;
+            return Task.CompletedTask;
+        }
+
         public Task UpdateAsync(UserProfile profile, CancellationToken ct = default) =>
             Task.CompletedTask;
     }

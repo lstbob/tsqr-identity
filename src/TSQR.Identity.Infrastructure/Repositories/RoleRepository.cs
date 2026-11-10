@@ -8,7 +8,9 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
 {
     public async Task<List<Role>> GetAllAsync(CancellationToken ct = default)
     {
-        var rows = await uow.Connection.QueryAsync<Role>("SELECT * FROM roles ORDER BY Name");
+        var rows = await uow.Connection.QueryAsync<Role>(
+            "SELECT * FROM roles ORDER BY Name",
+            ct: ct);
         return rows.ToList();
     }
 
@@ -16,18 +18,24 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     {
         return await uow.Connection.QuerySingleOrDefaultAsync<Role>(
             "SELECT * FROM roles WHERE NormalizedName = @Name",
-            new { Name = name.ToUpperInvariant() });
+            new { Name = name.ToUpperInvariant() },
+            ct);
     }
 
     public async Task CreateAsync(Role role, CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            "INSERT INTO roles (Id, Name, NormalizedName) VALUES (@Id, @Name, @NormalizedName)", role);
+            "INSERT INTO roles (Id, Name, NormalizedName) VALUES (@Id, @Name, @NormalizedName)",
+            role,
+            ct);
     }
 
     public async Task DeleteAsync(string roleId, CancellationToken ct = default)
     {
-        await uow.Connection.ExecuteAsync("DELETE FROM roles WHERE Id = @Id", new { Id = roleId });
+        await uow.Connection.ExecuteAsync(
+            "DELETE FROM roles WHERE Id = @Id",
+            new { Id = roleId },
+            ct);
     }
 
     public async Task<bool> UserHasRoleAsync(string userId, string roleName, CancellationToken ct = default)
@@ -36,7 +44,8 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
             @"SELECT COUNT(1) FROM user_roles ur
               INNER JOIN roles r ON r.Id = ur.RoleId
               WHERE ur.UserId = @UserId AND r.NormalizedName = @Name",
-            new { UserId = userId, Name = roleName.ToUpperInvariant() });
+            new { UserId = userId, Name = roleName.ToUpperInvariant() },
+            ct);
         return count > 0;
     }
 
@@ -44,7 +53,8 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     {
         await uow.Connection.ExecuteAsync(
             "INSERT INTO user_roles (UserId, RoleId) VALUES (@UserId, @RoleId) ON CONFLICT DO NOTHING",
-            new { UserId = userId, RoleId = roleId });
+            new { UserId = userId, RoleId = roleId },
+            ct);
     }
 
     public async Task RemoveRoleAsync(string userId, string roleName, CancellationToken ct = default)
@@ -52,7 +62,8 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         await uow.Connection.ExecuteAsync(
             @"DELETE FROM user_roles WHERE UserId = @UserId AND RoleId =
               (SELECT Id FROM roles WHERE NormalizedName = @Name)",
-            new { UserId = userId, Name = roleName.ToUpperInvariant() });
+            new { UserId = userId, Name = roleName.ToUpperInvariant() },
+            ct);
     }
 
     public async Task<List<string>> GetUserRolesAsync(string userId, CancellationToken ct = default)
@@ -60,7 +71,9 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         var rows = await uow.Connection.QueryAsync<string>(
             @"SELECT r.Name FROM roles r
               INNER JOIN user_roles ur ON ur.RoleId = r.Id
-              WHERE ur.UserId = @UserId", new { UserId = userId });
+              WHERE ur.UserId = @UserId",
+            new { UserId = userId },
+            ct);
         return rows.ToList();
     }
 }
