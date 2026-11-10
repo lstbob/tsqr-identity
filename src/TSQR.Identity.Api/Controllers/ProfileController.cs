@@ -110,25 +110,11 @@ public sealed class ProfileController : ControllerBase
             await file.CopyToAsync(stream, ct);
         }
 
-        var profile = await profiles.GetByIdAsync(userId, ct);
-        if (profile is null)
-        {
-            profile = new UserProfile
-            {
-                Id = userId,
-                AvatarUrl = fileName,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-            await profiles.CreateAsync(profile, ct);
-        }
-        else
-        {
-            profile.AvatarUrl = fileName;
-            profile.UpdatedAt = DateTime.UtcNow;
-            await profiles.UpdateAsync(profile, ct);
-        }
+        var profileResult = UserProfile.Create(userId, avatarUrl: fileName);
+        if (profileResult.IsFailure)
+            return ToErrorResult(profileResult.Error);
 
+        await profiles.UpsertAsync(profileResult.Value, ct);
         await uow.SaveChangesAsync(ct);
 
         return Ok(new { avatarUrl = $"/api/profile/avatar/{userId}" });

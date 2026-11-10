@@ -22,7 +22,7 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
                 change.ExpiresAt,
                 change.CreatedAt,
                 change.IsConfirmed,
-            });
+            }, ct);
     }
 
     public async Task<PendingEmailChange?> GetByTokenHashAsync(
@@ -33,7 +33,8 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
             @"SELECT Id, UserId, NewEmail, TokenHash, ExpiresAt, CreatedAt, IsConfirmed
               FROM pending_email_changes
               WHERE TokenHash = @TokenHash",
-            new { TokenHash = tokenHash });
+            new { TokenHash = tokenHash },
+            ct);
 
         return row is null
             ? null
@@ -53,14 +54,16 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
     {
         await uow.Connection.ExecuteAsync(
             "DELETE FROM pending_email_changes WHERE UserId = @UserId AND IsConfirmed = FALSE",
-            new { UserId = userId });
+            new { UserId = userId },
+            ct);
     }
 
     public async Task UpdateAsync(PendingEmailChange change, CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
             "UPDATE pending_email_changes SET IsConfirmed = @IsConfirmed WHERE Id = @Id",
-            new { change.Id, change.IsConfirmed });
+            new { change.Id, change.IsConfirmed },
+            ct);
     }
 
     private sealed record PendingEmailChangeRow(
