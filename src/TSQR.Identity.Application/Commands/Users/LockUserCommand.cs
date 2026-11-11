@@ -13,8 +13,10 @@ public class LockUserCommandHandler(IUserAdminRepository users, IUnitOfWork uow)
         if (user is null)
             return new NotFoundError(nameof(command.UserId), "User not found.");
 
-        user.LockoutEnd = command.LockoutEnd;
-        user.UpdatedAt = DateTime.UtcNow;
+        var lockResult = user.SetLockoutEnd(command.LockoutEnd);
+        if (lockResult.IsFailure)
+            return lockResult.Error;
+
         await users.UpdateAsync(user, ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success();

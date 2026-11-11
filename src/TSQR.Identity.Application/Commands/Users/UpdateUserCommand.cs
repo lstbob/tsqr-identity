@@ -13,9 +13,10 @@ public class UpdateUserCommandHandler(IUserAdminRepository users, IUnitOfWork uo
         if (user is null)
             return new NotFoundError(nameof(command.UserId), "User not found.");
 
-        if (command.FirstName is not null) user.FirstName = command.FirstName;
-        if (command.LastName is not null) user.LastName = command.LastName;
-        user.UpdatedAt = DateTime.UtcNow;
+        var updateResult = user.UpdateProfile(command.FirstName, command.LastName);
+        if (updateResult.IsFailure)
+            return updateResult.Error;
+
         await users.UpdateAsync(user, ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success();

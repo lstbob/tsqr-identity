@@ -40,6 +40,28 @@ public class UserProfileFactoryTests
         Assert.Equal("Id", error.Code);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Create_BlankOptionalName_ReturnsValidationError(string name)
+    {
+        var result = UserProfile.Create("user-1", firstName: name);
+
+        Assert.True(result.IsFailure);
+        var error = Assert.IsType<ValidationError>(result.Error);
+        Assert.Equal("FirstName", error.Code);
+    }
+
+    [Fact]
+    public void Create_BlankAvatar_ReturnsValidationError()
+    {
+        var result = UserProfile.Create("user-1", avatarUrl: " ");
+
+        Assert.True(result.IsFailure);
+        var error = Assert.IsType<ValidationError>(result.Error);
+        Assert.Equal("AvatarUrl", error.Code);
+    }
+
     [Fact]
     public void Create_PreservesSuppliedTimestamps()
     {
