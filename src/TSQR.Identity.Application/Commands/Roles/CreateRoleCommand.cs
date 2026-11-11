@@ -9,16 +9,14 @@ public class CreateRoleCommandHandler(IRoleRepository roles, IUnitOfWork uow)
 {
     public async Task<Result> ExecuteAsync(CreateRoleCommand command, CancellationToken ct = default)
     {
-        var exists = await roles.GetByNameAsync(command.RoleName, ct);
+        var roleResult = Role.Create(command.RoleName);
+        if (roleResult.IsFailure)
+            return roleResult.Error;
+
+        var role = roleResult.Value;
+        var exists = await roles.GetByNameAsync(role.Name, ct);
         if (exists is not null)
             return new ValidationError(nameof(command.RoleName), "Role already exists.");
-
-        var role = new Role
-        {
-            Id = Guid.NewGuid().ToString(),
-            Name = command.RoleName,
-            NormalizedName = command.RoleName.ToUpperInvariant(),
-        };
 
         await roles.CreateAsync(role, ct);
         await uow.SaveChangesAsync(ct);

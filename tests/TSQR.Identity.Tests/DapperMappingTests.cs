@@ -23,4 +23,23 @@ public class DapperMappingTests
         Assert.Equal("Grace", profile.FirstName);
         Assert.NotNull(profile.LockoutEnd);
     }
+
+    [Fact]
+    public void DefaultTypeMap_CanSetRolePrivateSetters()
+    {
+        var role = Role.Create("Admin").Value;
+        var map = new DefaultTypeMap(typeof(Role));
+
+        var name = map.GetMember("Name");
+        var normalizedName = map.GetMember("NormalizedName");
+
+        Assert.NotNull(name);
+        Assert.NotNull(normalizedName);
+
+        name.Property!.SetValue(role, "Coordinator");
+        normalizedName.Property!.SetValue(role, "COORDINATOR");
+
+        Assert.Equal("Coordinator", role.Name);
+        Assert.Equal("COORDINATOR", role.NormalizedName);
+    }
 }
