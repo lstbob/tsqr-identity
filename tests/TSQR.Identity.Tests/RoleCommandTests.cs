@@ -60,6 +60,21 @@ public class RoleCommandTests
         Assert.Equal(0, uow.SaveCalls);
     }
 
+    [Fact]
+    public async Task AssignRole_ValidRole_RecordsAssignedBy()
+    {
+        var roles = new RecordingRoleRepository { Existing = CreateRole() };
+        var uow = new RecordingUnitOfWork();
+        var handler = new AssignRoleCommandHandler(roles, uow, new TestCurrentUser("admin-1"));
+
+        var result = await handler.ExecuteAsync(new AssignRoleCommand("user-1", "Admin"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("user-1", roles.LastAssignedUserId);
+        Assert.Equal("admin-1", roles.LastAssignedBy);
+        Assert.Equal(1, uow.SaveCalls);
+    }
+
     private static Role CreateRole()
     {
         var result = Role.Create("Admin");
@@ -73,6 +88,8 @@ public class RoleCommandTests
         public int GetByNameCalls { get; private set; }
         public int CreateCalls { get; private set; }
         public Role? Created { get; private set; }
+        public string? LastAssignedUserId { get; private set; }
+        public string? LastAssignedBy { get; private set; }
 
         public Task<List<Role>> GetAllAsync(CancellationToken ct = default) =>
             Task.FromResult(new List<Role>());
@@ -96,8 +113,16 @@ public class RoleCommandTests
         public Task<bool> UserHasRoleAsync(string userId, string roleName, CancellationToken ct = default) =>
             Task.FromResult(false);
 
-        public Task AssignRoleAsync(string userId, string roleId, CancellationToken ct = default) =>
-            Task.CompletedTask;
+        public Task AssignRoleAsync(
+            string userId,
+            string roleId,
+            string assignedBy,
+            CancellationToken ct = default)
+        {
+            LastAssignedUserId = userId;
+            LastAssignedBy = assignedBy;
+            return Task.CompletedTask;
+        }
 
         public Task RemoveRoleAsync(string userId, string roleName, CancellationToken ct = default) =>
             Task.CompletedTask;

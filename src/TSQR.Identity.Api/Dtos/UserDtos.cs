@@ -14,3 +14,7 @@ public record CurrentUserResponse(
 public record UpdateUserRequest(
     [StringLength(100)] string? FirstName,
     [StringLength(100)] string? LastName);
+
+public record SuspendUserRequest(
+    DateTime Until,
+    [Required][StringLength(500)] string Reason);

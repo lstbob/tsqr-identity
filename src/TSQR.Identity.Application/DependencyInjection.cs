@@ -18,7 +18,8 @@ public static class DependencyInjection
 
         services.AddScoped<IInteractor<UpdateUserCommand, Result>, UpdateUserCommandHandler>();
         services.AddScoped<IInteractor<DeleteUserCommand, Result>, DeleteUserCommandHandler>();
-        services.AddScoped<IInteractor<LockUserCommand, Result>, LockUserCommandHandler>();
+        services.AddScoped<IInteractor<SuspendUserCommand, Result>, SuspendUserCommandHandler>();
+        services.AddScoped<IInteractor<ReinstateUserCommand, Result>, ReinstateUserCommandHandler>();
         services.AddScoped<IInteractor<GetUsersQuery, Result<List<UserListItem>>>, GetUsersQueryHandler>();
         services.AddScoped<IInteractor<GetUserQuery, Result<UserListItem>>, GetUserQueryHandler>();
         services.AddScoped<IInteractor<GetCurrentUserQuery, Result<CurrentUserResult>>, GetCurrentUserQueryHandler>();

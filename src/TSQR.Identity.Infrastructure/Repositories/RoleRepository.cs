@@ -49,11 +49,19 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         return count > 0;
     }
 
-    public async Task AssignRoleAsync(string userId, string roleId, CancellationToken ct = default)
+    public async Task AssignRoleAsync(
+        string userId,
+        string roleId,
+        string assignedBy,
+        CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            "INSERT INTO user_roles (UserId, RoleId) VALUES (@UserId, @RoleId) ON CONFLICT DO NOTHING",
-            new { UserId = userId, RoleId = roleId },
+            @"INSERT INTO user_roles (UserId, RoleId, AssignedAt, AssignedBy)
+              VALUES (@UserId, @RoleId, now(), @AssignedBy)
+              ON CONFLICT (UserId, RoleId) DO UPDATE SET
+                  AssignedAt = now(),
+                  AssignedBy = EXCLUDED.AssignedBy",
+            new { UserId = userId, RoleId = roleId, AssignedBy = assignedBy },
             ct);
     }
 

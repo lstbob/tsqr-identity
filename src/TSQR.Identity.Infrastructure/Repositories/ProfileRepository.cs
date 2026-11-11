@@ -26,8 +26,12 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
     public async Task CreateAsync(UserProfile profile, CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            @"INSERT INTO user_profiles (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd)
-              VALUES (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd)
+            @"INSERT INTO user_profiles
+                  (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd,
+                   CreatedBy, UpdatedBy, LockedBy, LockReason)
+              VALUES
+                  (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
+                   @CreatedBy, @UpdatedBy, @LockedBy, @LockReason)
               ON CONFLICT (Id) DO NOTHING",
             profile,
             ct);
@@ -36,15 +40,23 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
     public async Task UpsertAsync(UserProfile profile, CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            @"INSERT INTO user_profiles (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd)
-              VALUES (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd)
+            @"INSERT INTO user_profiles
+                  (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd,
+                   CreatedBy, UpdatedBy, LockedBy, LockReason)
+              VALUES
+                  (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
+                   @CreatedBy, @UpdatedBy, @LockedBy, @LockReason)
               ON CONFLICT (Id) DO UPDATE SET
                   FirstName = COALESCE(EXCLUDED.FirstName, user_profiles.FirstName),
                   LastName = COALESCE(EXCLUDED.LastName, user_profiles.LastName),
                   AvatarUrl = COALESCE(EXCLUDED.AvatarUrl, user_profiles.AvatarUrl),
                   Bio = COALESCE(EXCLUDED.Bio, user_profiles.Bio),
                   UpdatedAt = EXCLUDED.UpdatedAt,
-                  LockoutEnd = COALESCE(EXCLUDED.LockoutEnd, user_profiles.LockoutEnd)",
+                  LockoutEnd = COALESCE(EXCLUDED.LockoutEnd, user_profiles.LockoutEnd),
+                  CreatedBy = COALESCE(EXCLUDED.CreatedBy, user_profiles.CreatedBy),
+                  UpdatedBy = COALESCE(EXCLUDED.UpdatedBy, user_profiles.UpdatedBy),
+                  LockedBy = COALESCE(EXCLUDED.LockedBy, user_profiles.LockedBy),
+                  LockReason = COALESCE(EXCLUDED.LockReason, user_profiles.LockReason)",
             profile,
             ct);
     }
@@ -53,7 +65,8 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
     {
         await uow.Connection.ExecuteAsync(
             @"UPDATE user_profiles SET FirstName = @FirstName, LastName = @LastName,
-              AvatarUrl = @AvatarUrl, Bio = @Bio, UpdatedAt = @UpdatedAt, LockoutEnd = @LockoutEnd
+              AvatarUrl = @AvatarUrl, Bio = @Bio, UpdatedAt = @UpdatedAt, LockoutEnd = @LockoutEnd,
+              UpdatedBy = @UpdatedBy, LockedBy = @LockedBy, LockReason = @LockReason
               WHERE Id = @Id",
             profile,
             ct);

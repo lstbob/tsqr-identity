@@ -10,5 +10,3 @@ public record CreateRoleRequest(
 public record AssignRoleRequest(
     [Required] string UserId,
     [Required][StringLength(100)] string RoleName);
-
-public record LockUserRequest(DateTime? LockoutEnd);
