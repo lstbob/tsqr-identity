@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using TSQR.Identity.Api.Dtos;
+using TSQR.Identity.Api.Security;
 using TSQR.Identity.Application;
+using TSQR.Identity.Application.Abstractions;
 using TSQR.Identity.Infrastructure;
 using TSQR.Identity.Infrastructure.Dapper;
 using TSQR.Identity.Infrastructure.Options;
@@ -39,6 +41,8 @@ var emailOptions = builder.Configuration.GetSection("Email").Get<EmailOptions>()
 
 builder.Services.AddIdentityInfrastructure(connectionString, autheoOptions, emailOptions);
 builder.Services.AddApplicationFeatures();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

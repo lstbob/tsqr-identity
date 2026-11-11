@@ -9,7 +9,7 @@ public interface IRoleRepository
     Task CreateAsync(Role role, CancellationToken ct = default);
     Task DeleteAsync(string roleId, CancellationToken ct = default);
     Task<bool> UserHasRoleAsync(string userId, string roleName, CancellationToken ct = default);
-    Task AssignRoleAsync(string userId, string roleId, CancellationToken ct = default);
+    Task AssignRoleAsync(string userId, string roleId, string assignedBy, CancellationToken ct = default);
     Task RemoveRoleAsync(string userId, string roleName, CancellationToken ct = default);
     Task<List<string>> GetUserRolesAsync(string userId, CancellationToken ct = default);
 }

@@ -13,7 +13,7 @@ public class UpdateProfileCommandTests
     {
         var profiles = new RecordingProfileRepository();
         var uow = new RecordingUnitOfWork();
-        var handler = new UpdateProfileCommandHandler(profiles, uow);
+        var handler = new UpdateProfileCommandHandler(profiles, uow, new TestCurrentUser("profile-owner"));
 
         var result = await handler.ExecuteAsync(
             new UpdateProfileCommand("user-1", "Ada", "Lovelace", "Mathematician"));
@@ -28,6 +28,7 @@ public class UpdateProfileCommandTests
         Assert.Equal("Ada", profile.FirstName);
         Assert.Equal("Lovelace", profile.LastName);
         Assert.Equal("Mathematician", profile.Bio);
+        Assert.Equal("profile-owner", profile.UpdatedBy);
     }
 
     [Fact]
@@ -35,7 +36,7 @@ public class UpdateProfileCommandTests
     {
         var profiles = new RecordingProfileRepository();
         var uow = new RecordingUnitOfWork();
-        var handler = new UpdateProfileCommandHandler(profiles, uow);
+        var handler = new UpdateProfileCommandHandler(profiles, uow, new TestCurrentUser());
 
         var result = await handler.ExecuteAsync(
             new UpdateProfileCommand(" ", "Ada", "Lovelace", null));

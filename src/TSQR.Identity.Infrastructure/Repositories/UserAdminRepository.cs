@@ -26,7 +26,9 @@ public sealed class UserAdminRepository(ISqlUnitOfWork uow) : IUserAdminReposito
     {
         await uow.Connection.ExecuteAsync(
             @"UPDATE user_profiles SET FirstName = @FirstName, LastName = @LastName,
-              LockoutEnd = @LockoutEnd, UpdatedAt = @UpdatedAt WHERE Id = @Id",
+              LockoutEnd = @LockoutEnd, UpdatedAt = @UpdatedAt,
+              UpdatedBy = @UpdatedBy, LockedBy = @LockedBy, LockReason = @LockReason
+              WHERE Id = @Id",
             user,
             ct);
     }

@@ -14,20 +14,23 @@ public sealed class UsersController : ControllerBase
     private readonly IInteractor<GetUserQuery, Result<UserListItem>> _getUser;
     private readonly IInteractor<UpdateUserCommand, Result> _updateUser;
     private readonly IInteractor<DeleteUserCommand, Result> _deleteUser;
-    private readonly IInteractor<LockUserCommand, Result> _lockUser;
+    private readonly IInteractor<SuspendUserCommand, Result> _suspendUser;
+    private readonly IInteractor<ReinstateUserCommand, Result> _reinstateUser;
 
     public UsersController(
         IInteractor<GetUsersQuery, Result<List<UserListItem>>> getUsers,
         IInteractor<GetUserQuery, Result<UserListItem>> getUser,
         IInteractor<UpdateUserCommand, Result> updateUser,
         IInteractor<DeleteUserCommand, Result> deleteUser,
-        IInteractor<LockUserCommand, Result> lockUser)
+        IInteractor<SuspendUserCommand, Result> suspendUser,
+        IInteractor<ReinstateUserCommand, Result> reinstateUser)
     {
         _getUsers = getUsers;
         _getUser = getUser;
         _updateUser = updateUser;
         _deleteUser = deleteUser;
-        _lockUser = lockUser;
+        _suspendUser = suspendUser;
+        _reinstateUser = reinstateUser;
     }
 
     [HttpGet]
@@ -72,22 +75,22 @@ public sealed class UsersController : ControllerBase
         return ToErrorResult(result.Error);
     }
 
-    [HttpPost("{id}/lock")]
-    public async Task<ActionResult> Lock(string id, LockUserRequest request, CancellationToken ct)
+    [HttpPost("{id}/suspend")]
+    public async Task<ActionResult> Suspend(string id, SuspendUserRequest request, CancellationToken ct)
     {
-        var command = new LockUserCommand(id, request.LockoutEnd);
-        var result = await _lockUser.ExecuteAsync(command, ct);
+        var command = new SuspendUserCommand(id, request.Until, request.Reason);
+        var result = await _suspendUser.ExecuteAsync(command, ct);
         if (result.IsSuccess)
             return Ok();
 
         return ToErrorResult(result.Error);
     }
 
-    [HttpPost("{id}/unlock")]
-    public async Task<ActionResult> Unlock(string id, CancellationToken ct)
+    [HttpPost("{id}/reinstate")]
+    public async Task<ActionResult> Reinstate(string id, CancellationToken ct)
     {
-        var command = new LockUserCommand(id, null);
-        var result = await _lockUser.ExecuteAsync(command, ct);
+        var command = new ReinstateUserCommand(id);
+        var result = await _reinstateUser.ExecuteAsync(command, ct);
         if (result.IsSuccess)
             return Ok();
 

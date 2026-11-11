@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TSQR.Identity.Application.Abstractions;
 using TSQR.Identity.Application.Commands.Profile;
 using TSQR.Identity.Application.Queries.Profile;
 
@@ -87,7 +88,12 @@ public sealed class ProfileController : ControllerBase
 
     [HttpPost("avatar")]
     [RequestSizeLimit(5_242_880)] // 5 MB
-    public async Task<ActionResult> UploadAvatar(IFormFile file, [FromServices] IProfileRepository profiles, [FromServices] IUnitOfWork uow, CancellationToken ct)
+    public async Task<ActionResult> UploadAvatar(
+        IFormFile file,
+        [FromServices] IProfileRepository profiles,
+        [FromServices] IUnitOfWork uow,
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken ct)
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return Unauthorized();
@@ -110,7 +116,10 @@ public sealed class ProfileController : ControllerBase
             await file.CopyToAsync(stream, ct);
         }
 
-        var profileResult = UserProfile.Create(userId, avatarUrl: fileName);
+        var profileResult = UserProfile.Create(
+            userId,
+            avatarUrl: fileName,
+            updatedBy: currentUser.UserId ?? userId);
         if (profileResult.IsFailure)
             return ToErrorResult(profileResult.Error);
 
