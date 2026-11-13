@@ -163,7 +163,10 @@ public class UserProfileCommandTests
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(string userId, CancellationToken ct = default) =>
+        public Task DeleteAsync(
+            string userId,
+            string? deletedBy = null,
+            CancellationToken ct = default) =>
             Task.CompletedTask;
 
         private static UserProfile CreateUser()

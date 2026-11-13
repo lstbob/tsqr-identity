@@ -18,6 +18,8 @@ public sealed class UserProfile : IAggregateRoot
     public string? LockReason { get; private set; }
     public string? CreatedBy { get; private set; }
     public string? UpdatedBy { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public string? DeletedBy { get; private set; }
 
     public static Result<UserProfile> Create(
         string id,

@@ -6,10 +6,14 @@ namespace TSQR.Identity.Infrastructure.Repositories;
 
 public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
 {
+    private const string ProfileColumns =
+        "Id::text AS Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd, " +
+        "CreatedBy, UpdatedBy, LockedBy, LockReason, DeletedAt, DeletedBy";
+
     public async Task<UserProfile?> GetByIdAsync(string userId, CancellationToken ct = default)
     {
         return await uow.Connection.QuerySingleOrDefaultAsync<UserProfile>(
-            "SELECT * FROM user_profiles WHERE Id = @Id",
+            $"SELECT {ProfileColumns} FROM user_profiles WHERE Id = @Id::uuid AND DeletedAt IS NULL",
             new { Id = userId },
             ct);
     }
@@ -17,7 +21,7 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
     public async Task<bool> ExistsAsync(string userId, CancellationToken ct = default)
     {
         var count = await uow.Connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(1) FROM user_profiles WHERE Id = @Id",
+            "SELECT COUNT(1) FROM user_profiles WHERE Id = @Id::uuid AND DeletedAt IS NULL",
             new { Id = userId },
             ct);
         return count > 0;
@@ -30,7 +34,7 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
                   (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd,
                    CreatedBy, UpdatedBy, LockedBy, LockReason)
               VALUES
-                  (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
+                  (@Id::uuid, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
                    @CreatedBy, @UpdatedBy, @LockedBy, @LockReason)
               ON CONFLICT (Id) DO NOTHING",
             profile,
@@ -44,7 +48,7 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
                   (Id, FirstName, LastName, AvatarUrl, Bio, CreatedAt, UpdatedAt, LockoutEnd,
                    CreatedBy, UpdatedBy, LockedBy, LockReason)
               VALUES
-                  (@Id, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
+                  (@Id::uuid, @FirstName, @LastName, @AvatarUrl, @Bio, @CreatedAt, @UpdatedAt, @LockoutEnd,
                    @CreatedBy, @UpdatedBy, @LockedBy, @LockReason)
               ON CONFLICT (Id) DO UPDATE SET
                   FirstName = COALESCE(EXCLUDED.FirstName, user_profiles.FirstName),
@@ -56,7 +60,8 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
                   CreatedBy = COALESCE(EXCLUDED.CreatedBy, user_profiles.CreatedBy),
                   UpdatedBy = COALESCE(EXCLUDED.UpdatedBy, user_profiles.UpdatedBy),
                   LockedBy = COALESCE(EXCLUDED.LockedBy, user_profiles.LockedBy),
-                  LockReason = COALESCE(EXCLUDED.LockReason, user_profiles.LockReason)",
+                  LockReason = COALESCE(EXCLUDED.LockReason, user_profiles.LockReason)
+              WHERE user_profiles.DeletedAt IS NULL",
             profile,
             ct);
     }
@@ -67,7 +72,7 @@ public sealed class ProfileRepository(ISqlUnitOfWork uow) : IProfileRepository
             @"UPDATE user_profiles SET FirstName = @FirstName, LastName = @LastName,
               AvatarUrl = @AvatarUrl, Bio = @Bio, UpdatedAt = @UpdatedAt, LockoutEnd = @LockoutEnd,
               UpdatedBy = @UpdatedBy, LockedBy = @LockedBy, LockReason = @LockReason
-              WHERE Id = @Id",
+              WHERE Id = @Id::uuid AND DeletedAt IS NULL",
             profile,
             ct);
     }
