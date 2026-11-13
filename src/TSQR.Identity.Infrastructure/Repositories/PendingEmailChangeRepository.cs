@@ -12,7 +12,7 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
             @"INSERT INTO pending_email_changes
                   (Id, UserId, NewEmail, TokenHash, ExpiresAt, CreatedAt, IsConfirmed)
               VALUES
-                  (@Id, @UserId, @NewEmail, @TokenHash, @ExpiresAt, @CreatedAt, @IsConfirmed)",
+                  (@Id, @UserId::uuid, @NewEmail, @TokenHash, @ExpiresAt, @CreatedAt, @IsConfirmed)",
             new
             {
                 change.Id,
@@ -30,7 +30,7 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
         CancellationToken ct = default)
     {
         var row = await uow.Connection.QuerySingleOrDefaultAsync<PendingEmailChangeRow>(
-            @"SELECT Id, UserId, NewEmail, TokenHash, ExpiresAt, CreatedAt, IsConfirmed
+            @"SELECT Id, UserId::text AS UserId, NewEmail, TokenHash, ExpiresAt, CreatedAt, IsConfirmed
               FROM pending_email_changes
               WHERE TokenHash = @TokenHash",
             new { TokenHash = tokenHash },
@@ -53,7 +53,7 @@ public sealed class PendingEmailChangeRepository(ISqlUnitOfWork uow) : IPendingE
         CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            "DELETE FROM pending_email_changes WHERE UserId = @UserId AND IsConfirmed = FALSE",
+            "DELETE FROM pending_email_changes WHERE UserId = @UserId::uuid AND IsConfirmed = FALSE",
             new { UserId = userId },
             ct);
     }

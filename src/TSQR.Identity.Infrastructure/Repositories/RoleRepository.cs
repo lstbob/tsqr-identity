@@ -9,7 +9,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     public async Task<List<Role>> GetAllAsync(CancellationToken ct = default)
     {
         var rows = await uow.Connection.QueryAsync<Role>(
-            "SELECT * FROM roles ORDER BY Name",
+            "SELECT Id, Name, NormalizedName FROM roles ORDER BY Name",
             ct: ct);
         return rows.ToList();
     }
@@ -17,7 +17,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     public async Task<Role?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         return await uow.Connection.QuerySingleOrDefaultAsync<Role>(
-            "SELECT * FROM roles WHERE NormalizedName = @Name",
+            "SELECT Id, Name, NormalizedName FROM roles WHERE NormalizedName = @Name",
             new { Name = name.ToUpperInvariant() },
             ct);
     }
@@ -43,7 +43,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         var count = await uow.Connection.ExecuteScalarAsync<int>(
             @"SELECT COUNT(1) FROM user_roles ur
               INNER JOIN roles r ON r.Id = ur.RoleId
-              WHERE ur.UserId = @UserId AND r.NormalizedName = @Name",
+              WHERE ur.UserId = @UserId::uuid AND r.NormalizedName = @Name",
             new { UserId = userId, Name = roleName.ToUpperInvariant() },
             ct);
         return count > 0;
@@ -57,7 +57,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     {
         await uow.Connection.ExecuteAsync(
             @"INSERT INTO user_roles (UserId, RoleId, AssignedAt, AssignedBy)
-              VALUES (@UserId, @RoleId, now(), @AssignedBy)
+              VALUES (@UserId::uuid, @RoleId, now(), @AssignedBy)
               ON CONFLICT (UserId, RoleId) DO UPDATE SET
                   AssignedAt = now(),
                   AssignedBy = EXCLUDED.AssignedBy",
@@ -68,7 +68,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
     public async Task RemoveRoleAsync(string userId, string roleName, CancellationToken ct = default)
     {
         await uow.Connection.ExecuteAsync(
-            @"DELETE FROM user_roles WHERE UserId = @UserId AND RoleId =
+            @"DELETE FROM user_roles WHERE UserId = @UserId::uuid AND RoleId =
               (SELECT Id FROM roles WHERE NormalizedName = @Name)",
             new { UserId = userId, Name = roleName.ToUpperInvariant() },
             ct);
@@ -79,7 +79,7 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         var rows = await uow.Connection.QueryAsync<string>(
             @"SELECT r.Name FROM roles r
               INNER JOIN user_roles ur ON ur.RoleId = r.Id
-              WHERE ur.UserId = @UserId",
+              WHERE ur.UserId = @UserId::uuid",
             new { UserId = userId },
             ct);
         return rows.ToList();
