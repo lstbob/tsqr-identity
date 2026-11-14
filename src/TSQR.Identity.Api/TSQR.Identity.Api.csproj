@@ -7,13 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\TSQR.Identity.Application\TSQR.Identity.Application.csproj" />
     <ProjectReference Include="..\TSQR.Identity.Infrastructure\TSQR.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\tsqr-common\src\TSQR.Common\TSQR.Common.csproj" />
+    <ProjectReference Include="..\..\..\tsqr-common\src\TSQR.Common.WebApi\TSQR.Common.WebApi.csproj" />
   </ItemGroup>
 
 </Project>
