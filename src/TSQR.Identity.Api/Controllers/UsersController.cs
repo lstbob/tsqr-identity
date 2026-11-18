@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TSQR.Identity.Application.Commands.Users;
 using TSQR.Identity.Application.Queries.Users;
+using TSQR.Common.Authorization;
 
 namespace TSQR.Identity.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize(Roles = "Admin")]
+[Authorize(Policy = Permissions.UsersManage)]
 public sealed class UsersController : ControllerBase
 {
     private readonly IInteractor<GetUsersQuery, Result<List<UserListItem>>> _getUsers;

@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TSQR.Identity.Application.Commands.Roles;
 using TSQR.Identity.Application.Queries.Roles;
+using TSQR.Common.Authorization;
 
 namespace TSQR.Identity.Api.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = "Admin")]
+[Authorize(Policy = Permissions.RolesManage)]
 public sealed class RolesController : ControllerBase
 {
     private readonly IInteractor<CreateRoleCommand, Result> _createRole;
@@ -35,7 +36,7 @@ public sealed class RolesController : ControllerBase
     {
         var result = await _getRoles.ExecuteAsync(new GetRolesQuery(), ct);
         if (result.IsSuccess)
-            return Ok(result.Value.Select(r => new RoleResponse(r.Id, r.Name)).ToList());
+            return Ok(result.Value.Select(r => new RoleResponse(r.Id, r.Name, r.Permissions)).ToList());
 
         return BadRequest(new ErrorResponse(result.Error.Code, result.Error.Message));
     }
@@ -47,7 +48,7 @@ public sealed class RolesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> Create(CreateRoleRequest request, CancellationToken ct)
     {
-        var result = await _createRole.ExecuteAsync(new CreateRoleCommand(request.Name), ct);
+        var result = await _createRole.ExecuteAsync(new CreateRoleCommand(request.Name, request.Permissions), ct);
         if (result.IsSuccess)
             return Ok();
 
