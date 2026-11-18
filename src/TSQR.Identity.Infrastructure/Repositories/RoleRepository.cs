@@ -11,15 +11,23 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
         var rows = await uow.Connection.QueryAsync<Role>(
             "SELECT Id, Name, NormalizedName FROM roles ORDER BY Name",
             ct: ct);
-        return rows.ToList();
+        var roles = rows.ToList();
+        await LoadPermissionsAsync(roles, ct);
+        return roles;
     }
 
     public async Task<Role?> GetByNameAsync(string name, CancellationToken ct = default)
     {
-        return await uow.Connection.QuerySingleOrDefaultAsync<Role>(
+        var role = await uow.Connection.QuerySingleOrDefaultAsync<Role>(
             "SELECT Id, Name, NormalizedName FROM roles WHERE NormalizedName = @Name",
             new { Name = name.ToUpperInvariant() },
             ct);
+
+        if (role is null)
+            return null;
+
+        await LoadPermissionsAsync([role], ct);
+        return role;
     }
 
     public async Task CreateAsync(Role role, CancellationToken ct = default)
@@ -28,15 +36,51 @@ public sealed class RoleRepository(ISqlUnitOfWork uow) : IRoleRepository
             "INSERT INTO roles (Id, Name, NormalizedName) VALUES (@Id, @Name, @NormalizedName)",
             role,
             ct);
-    }
 
-    public async Task DeleteAsync(string roleId, CancellationToken ct = default)
-    {
+        if (role.Permissions.Count == 0)
+            return;
+
         await uow.Connection.ExecuteAsync(
-            "DELETE FROM roles WHERE Id = @Id",
-            new { Id = roleId },
+            @"INSERT INTO roles_permissions (RoleId, Permission)
+              VALUES (@RoleId, @Permission)
+              ON CONFLICT (RoleId, Permission) DO NOTHING",
+            role.Permissions.Select(permission => new
+            {
+                RoleId = role.Id,
+                Permission = permission,
+            }),
             ct);
     }
+
+    private async Task LoadPermissionsAsync(
+        IReadOnlyCollection<Role> roles,
+        CancellationToken ct)
+    {
+        if (roles.Count == 0)
+            return;
+
+        var rows = await uow.Connection.QueryAsync<RolePermissionRow>(
+            @"SELECT RoleId, Permission
+              FROM roles_permissions
+              WHERE RoleId = ANY(@RoleIds)",
+            new { RoleIds = roles.Select(role => role.Id).ToArray() },
+            ct);
+
+        var byRole = rows
+            .GroupBy(row => row.RoleId)
+            .ToDictionary(group => group.Key, group => group.Select(row => row.Permission));
+
+        foreach (var role in roles)
+        {
+            if (!byRole.TryGetValue(role.Id, out var permissions))
+                continue;
+
+            foreach (var permission in permissions)
+                role.AddPermission(permission);
+        }
+    }
+
+    private sealed record RolePermissionRow(string RoleId, string Permission);
 
     public async Task<bool> UserHasRoleAsync(string userId, string roleName, CancellationToken ct = default)
     {

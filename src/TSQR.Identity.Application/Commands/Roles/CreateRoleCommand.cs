@@ -2,14 +2,14 @@ using TSQR.Identity.Domain.Repositories;
 
 namespace TSQR.Identity.Application.Commands.Roles;
 
-public record CreateRoleCommand(string RoleName);
+public record CreateRoleCommand(string RoleName, IReadOnlyCollection<string>? Permissions = null);
 
 public class CreateRoleCommandHandler(IRoleRepository roles, IUnitOfWork uow)
     : IInteractor<CreateRoleCommand, Result>
 {
     public async Task<Result> ExecuteAsync(CreateRoleCommand command, CancellationToken ct = default)
     {
-        var roleResult = Role.Create(command.RoleName);
+        var roleResult = Role.Create(command.RoleName, command.Permissions);
         if (roleResult.IsFailure)
             return roleResult.Error;
 

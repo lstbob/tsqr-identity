@@ -1,4 +1,5 @@
 using TSQR.Identity.Domain;
+using TSQR.Identity.Domain.Entities;
 using TSQR.Identity.Infrastructure.Dapper;
 using TSQR.Identity.Infrastructure.Repositories;
 
@@ -18,6 +19,30 @@ public class RepositorySchemaTests
         Assert.Contains("DeletedAt IS NULL", connection.LastSql);
         Assert.DoesNotContain("SELECT *", connection.LastSql);
         Assert.Contains("@Id::uuid", connection.LastSql);
+    }
+
+    [Fact]
+    public async Task RoleRepository_GetAllLoadsPermissions()
+    {
+        var connection = new RecordingSqlConnection();
+        var repository = new RoleRepository(new FakeSqlUnitOfWork(connection));
+
+        await repository.GetAllAsync();
+
+        Assert.Contains("roles_permissions", connection.LastSql);
+    }
+
+    [Fact]
+    public async Task RoleRepository_CreatePersistsPermissions()
+    {
+        var connection = new RecordingSqlConnection();
+        var repository = new RoleRepository(new FakeSqlUnitOfWork(connection));
+        var role = Role.Create("Probe", ["tools.manage"]).Value;
+
+        await repository.CreateAsync(role);
+
+        Assert.Contains("roles_permissions", connection.LastSql);
+        Assert.Contains("@Permission", connection.LastSql);
     }
 
     [Fact]
@@ -58,6 +83,9 @@ public class RepositorySchemaTests
             CancellationToken ct = default)
         {
             LastSql = sql;
+            if (typeof(T) == typeof(Role))
+                return Task.FromResult(new[] { Role.Create("Admin").Value }.Cast<T>());
+
             return Task.FromResult(Enumerable.Empty<T>());
         }
 
