@@ -46,8 +46,9 @@ public class ChangeEmailCommandHandler(
         if (pending.IsExpired(DateTime.UtcNow))
             return new ValidationError("Token", "This email change request has expired.");
 
-        // autheo owns Users.Email. Forward the caller's access token so the
-        // change is applied to the same authenticated user.
+        // autheo owns Users.Email. The client exchanges the identity-scoped
+        // token for an autheo-scoped one before calling autheo, preserving the
+        // caller's subject and claims across the service boundary.
         var update = await autheo.ChangeEmailAsync(command.AccessToken, pending.NewEmail, ct);
         if (update.IsFailure)
             return update;

@@ -11,9 +11,10 @@ using TSQR.Identity.Infrastructure.Options;
 namespace TSQR.Identity.Infrastructure.Clients;
 
 /// <summary>
-/// Calls autheo's internal change-email endpoint. The caller's bearer token is
-/// forwarded so autheo applies the change to the same user, and the shared
-/// internal API key proves the call came from identity.
+/// Calls autheo's internal change-email endpoint. The caller's identity-scoped
+/// token is first exchanged for an autheo-scoped token so claims (including
+/// <c>sub</c>) are preserved without forwarding a token for the wrong
+/// audience. The shared internal API key proves the call came from identity.
 /// </summary>
 public sealed class AutheoEmailClient(
     HttpClient http,
@@ -28,11 +29,17 @@ public sealed class AutheoEmailClient(
         string newEmail,
         CancellationToken ct = default)
     {
+        var exchange = await ExchangeForAutheoAsync(accessToken, ct);
+        if (exchange.IsFailure)
+            return exchange.Error;
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/auth/change-email")
         {
             Content = JsonContent.Create(new { newEmail }, options: JsonOptions),
         };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            exchange.Value);
         if (!string.IsNullOrWhiteSpace(options.InternalApiKey))
             request.Headers.Add("X-Internal-Api-Key", options.InternalApiKey);
 
@@ -91,6 +98,98 @@ public sealed class AutheoEmailClient(
         }
     }
 
+    private async Task<Result<string>> ExchangeForAutheoAsync(
+        string accessToken,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(options.InternalApiKey))
+        {
+            logger.LogError(
+                "Autheo:InternalApiKey is not configured; cannot exchange the identity token for autheo.");
+            return new DomainError(
+                "AutheoForbidden",
+                "The authentication service rejected the email change.");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "internal/auth/exchange")
+        {
+            Content = JsonContent.Create(
+                new { audience = "tsqr-autheo" },
+                options: JsonOptions),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("X-Internal-Api-Key", options.InternalApiKey);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, ct);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Timed out calling autheo token exchange.");
+            return new DomainError(
+                "AutheoTimeout",
+                "The authentication service timed out. Please try again.");
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "Could not reach autheo token exchange.");
+            return new DomainError(
+                "AutheoUnavailable",
+                "The authentication service is unavailable. Please try again.");
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return new ValidationError(
+                    "SessionExpired",
+                    "Your session is no longer valid. Please sign in again.");
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                logger.LogError(
+                    "Autheo rejected the internal token exchange. Check Autheo:InternalApiKey.");
+                return new DomainError(
+                    "AutheoForbidden",
+                    "The authentication service rejected the email change.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await TryReadErrorAsync(response, ct);
+                if (error is not null && !string.IsNullOrWhiteSpace(error.Message))
+                {
+                    return new ValidationError(
+                        string.IsNullOrWhiteSpace(error.Code)
+                            ? "EmailChangeFailed"
+                            : error.Code,
+                        error.Message);
+                }
+
+                return new DomainError(
+                    "EmailChangeFailed",
+                    $"The authentication service rejected the token exchange ({(int)response.StatusCode}).");
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<AutheoExchangeResponse>(
+                JsonOptions,
+                ct);
+            if (payload is null || string.IsNullOrWhiteSpace(payload.AccessToken))
+            {
+                logger.LogWarning("Autheo token exchange returned an empty access token.");
+                return new DomainError(
+                    "EmailChangeFailed",
+                    "The authentication service returned an invalid token.");
+            }
+
+            return payload.AccessToken;
+        }
+    }
+
     private static async Task<AutheoError?> TryReadErrorAsync(
         HttpResponseMessage response,
         CancellationToken ct)
@@ -110,4 +209,6 @@ public sealed class AutheoEmailClient(
     }
 
     private sealed record AutheoError(string? Code, string? Message);
+
+    private sealed record AutheoExchangeResponse(string? AccessToken, DateTime ExpiresAt);
 }
